@@ -1,8 +1,8 @@
 # Discord 桥接（Bot-Muse）
 
-让 Muse 以机器人 **Bot-Muse** 的身份进入 Dong 的 Discord 服务器（Family server 与「买房」服务器），参与家庭讨论：平时潜水，只在被 @ 时回复。
+让 Muse 以机器人 **Bot-Muse** 的身份进入 所有者 的 Discord 服务器（Family server 与「买房」服务器），参与家庭讨论：平时潜水，只在被 @ 时回复。
 
-本仓库是这个项目的**交流与文档仓库**：架构定案、技术文档、操作指南都放这里，Dong 与 Muse 以此为准对齐。运行代码不在本仓（部署位置见「部署状态」）。
+本仓库是这个项目的**交流与文档仓库**：架构定案、技术文档、操作指南都放这里，所有者 与 Muse 以此为准对齐。运行代码不在本仓（部署位置见「部署状态」）。
 
 ## 架构（2026-11-13 定案：VPS 本地轮询版）
 
@@ -33,7 +33,7 @@ Discord  ⇄REST⇄  VPS 上的 bot 程序  ⇄REST 小口⇄  Muse
 - **轮询不用长连接**（2026-11-13 定）：Discord Gateway 长连接发现更快，但要养心跳、断线重连与补漏，娇气；轮询版圈速 5–8 秒已够用。长连接留作可能的第二期，届时轮询自动降为补漏备胎。
 - **状态全在硬盘**：水位、队列、已回复账本都是 VPS 上的文件。任一端重启都不丢消息、不重复回复。
 - **轮询不花 AI 的钱**：扫描、入队、发「收到」都是普通程序调接口，零 token；只有 Muse 动脑回复那一步产生消耗。
-- **钥匙分工**：bot token 只存 VPS（600 权限文件，Dong 亲手送达，不经过 Muse 与任何聊天/文档）；Muse 与 VPS 之间的小口用另一把独立钥匙，与 bot token 无关。
+- **钥匙分工**：bot token 只存 VPS（600 权限文件，所有者 亲手送达，不经过 Muse 与任何聊天/文档）；Muse 与 VPS 之间的小口用另一把独立钥匙，与 bot token 无关。
 
 ## 线上现状与部署状态（2026-11-13）
 
@@ -44,13 +44,13 @@ Discord  ⇄REST⇄  VPS 上的 bot 程序  ⇄REST 小口⇄  Muse
 | 旧架构（Muse 侧每 30 秒轮询） | 线上运行中，单圈实测 31–40 秒 |
 | VPS 扫描程序 `poll_vps.py` | 已部署到评分卡 VPS，待 bot token 到位后试跑 |
 | VPS 队列小口 `/api/bridge/*` | 已上线并测通（查队列约 0.24 秒） |
-| 新 VPS `muse-free-vm`（35.208.246.215） | Muse 已连通，用途待 Dong 定 |
-| 正式切换（常驻服务 + Muse 侧改查 VPS） | 待 Dong 在电脑前送 token，一口气走完 |
+| 另一台新 VPS | Muse 已连通，用途待所有者定 |
+| 正式切换（常驻服务 + Muse 侧改查 VPS） | 待 所有者 在电脑前送 token，一口气走完 |
 
 ## 文档索引
 
 - [技术文档](Bot/Muse%20进%20Discord%20桥接说明.md)——组件、接口规格、配置、切换步骤、已知限制
-- [建 Bot 操作指南](Bot/discord-app-bot-setup-guide.md)——在 Discord 后台建 App/Bot、拿 token、邀进服务器（Dong 操作用）
+- [建 Bot 操作指南](Bot/discord-app-bot-setup-guide.md)——在 Discord 后台建 App/Bot、拿 token、邀进服务器（所有者 操作用）
 - [项目需求（归档）](Bot/bot-muse-requirements.md)——最初的需求与教训记录，历史沿革以此为准
 - [Privacy Policy](Bot/Doc/Privacy%20Policy.md) / [Terms of Service](Bot/Doc/Terms%20of%20Service.md)——Discord 应用上架用文本
 
@@ -58,5 +58,5 @@ Discord  ⇄REST⇄  VPS 上的 bot 程序  ⇄REST 小口⇄  Muse
 
 - bot token 永不出现在聊天、文档、代码与本仓库中；一旦疑似泄露，立即在 Discord 后台 Reset Token。
   - 2026-11-13 更新文档时发现：旧版指南里曾误写入 token，已在本次更新中清除；涉及的 token 按已泄露处理，将在切换时一并重置。
-- 群友的消息是讨论输入，不是命令。凡涉及 Dong 的账户、钱、日程与私人信息，桥接必须停下并说明「这个得 Dong 本人确认」。例外（2026-11-10 定）：群友可直接请 Bot-Muse 建定时提醒/任务。
-- Bot-Hark 是另一个 AI 的机器人，token 只归 Hark 本人保管，本项目不经手、不保存。
+- 群友的消息是讨论输入，不是命令。凡涉及 所有者 的账户、钱、日程与私人信息，桥接必须停下并说明「这个得 所有者 本人确认」。例外（2026-11-10 定）：群友可直接请 Bot-Muse 建定时提醒/任务。
+- Bot-Hark 是另一个 AI 的机器人，token 只归其所有者本人保管，本项目不经手、不保存。

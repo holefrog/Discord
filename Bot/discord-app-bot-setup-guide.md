@@ -1,6 +1,6 @@
 # Discord 添加 App 和 Bot 操作指南
 
-> 给 Dong 操作用。以 Bot-Muse 为例，Bot-Hark 完全同理，只是名字换成 `App-Bot-Hark` / `Bot-Hark`。
+> 给 所有者 操作用。以 Bot-Muse 为例，Bot-Hark 完全同理，只是名字换成 `App-Bot-Hark` / `Bot-Hark`。
 > 先理解一组关系：**一个 App 只能挂一个 Bot**。App 是后台容器（管配置），Bot 是进服务器说话的员工账号。`Client Secret` 是 App 的，`Token` 是 Bot 的——复制时别拿错，拿错会 401。
 
 ## 第一步：建应用（Application）

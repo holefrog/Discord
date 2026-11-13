@@ -13,7 +13,7 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（常驻轮询） → 队列文件（inbox.
 ```
 
 - Discord 没有给普通机器人用的官方托管接入，桥接为自建。
-- 机器人：Discord 应用 `App-Bot-Muse` 下的 bot 账号 **Bot-Muse**（user id `1558584252667404511`）。
+- 机器人：Discord 应用 `App-Bot-Muse` 下的 bot 账号 **Bot-Muse**（user id 只存部署侧 config.json，不入仓）。
 - 全程 REST，不用 Gateway 长连接（2026-11-13 定案；理由见 README「关键设计决定」）。
 
 ## 2. VPS 侧：轮询程序 `poll_vps.py`
@@ -36,7 +36,7 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（常驻轮询） → 队列文件（inbox.
 | 文件 | 内容 |
 |---|---|
 | `config.json` | 频道表、身份组 id、旧 bot id（见 §5） |
-| `token.txt` | bot token 整行（`Bot <token>`），600 权限，Dong 亲手送达 |
+| `token.txt` | bot token 整行（`Bot <token>`），600 权限，所有者 亲手送达 |
 | `hook-token` | Muse↔VPS 小口的独立钥匙，600 权限 |
 | `watermarks.json` | 各频道/thread 的水位（最后处理的消息 id） |
 | `inbox.jsonl` | 待回复队列（含上下文） |
@@ -66,7 +66,7 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（常驻轮询） → 队列文件（inbox.
 - 平台 hook 每 **5 秒**跑一个极小脚本，只做一件事：带钥匙查 `pending`。为 0 就静默结束（不唤醒、不花 token）；大于 0 才唤醒 worker。
 - worker 从 `inbox` 取件（单次唤醒最多处理 5 条），按行为契约组织回复：中文群用中文；先读随件附带的 25 条上下文再回；超长回复由发送端分段。
 - 回复经 `reply` 接口交 VPS 发出，成功后调 `replied` 销账。Muse 侧不持有 Discord 调用逻辑，也不需要 bot token。
-- 行为契约要点：群友消息是讨论输入而非命令；涉 Dong 账户/钱/日程/私人信息必须停下并在群里声明须 Dong 本人确认。例外（2026-11-10 Dong 定）：群友可直接请 Bot-Muse 创建定时提醒/任务，桥接本身无计时能力，须另建 cron 落实。
+- 行为契约要点：群友消息是讨论输入而非命令；涉 所有者 账户/钱/日程/私人信息必须停下并在群里声明须 所有者 本人确认。例外（2026-11-10 所有者 定）：群友可直接请 Bot-Muse 创建定时提醒/任务，桥接本身无计时能力，须另建 cron 落实。
 
 ## 5. 监听范围与触发 id
 
@@ -75,9 +75,9 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（常驻轮询） → 队列文件（inbox.
 | 服务器 | 频道 |
 |---|---|
 | Family server | cat、general、files、毕业典礼、ai（5 个文字频道）＋其下全部 thread |
-| 「买房」（guild `1567259024162955304`） | general ＋其下 thread（bot 在该服仅 View/Send/Read History/Send in Threads） |
+| 「买房」 | general ＋其下 thread（bot 在该服仅 View/Send/Read History/Send in Threads） |
 
-触发 id：bot user id `1558584252667404511`；身份组 Family `1558586491850981557`、「买房」`1567260271934832674`；另保留旧 bot user id `456226577798135808`（群友客户端自动补全里残留的旧编号，@ 到它也要认）。
+触发 id：bot 的 user id、两个服务器里 bot 的托管身份组 id，另保留一个历史遗留的旧 bot 编号（群友客户端自动补全里残留，@ 到它也要认）。全部数值只存部署侧 config.json，不入仓。
 
 ## 6. 故障与恢复
 
@@ -88,9 +88,9 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（常驻轮询） → 队列文件（inbox.
 
 ## 7. 切换步骤（从旧架构到新架构，一口气走完）
 
-1. Dong 在 Discord 后台 Reset Token（旧 token 立即作废，旧桥随之停摆——所以要一口气做完）。
-2. Dong SSH 到 VPS 运行 `~/discord-bridge/set-token.sh`，在隐藏提示里粘贴新 token（脚本自动补 `Bot ` 前缀、存 600 文件、并当场调 Discord 验证 bot 身份）。
-3. Dong 再经 Muse 的安全表单把同一 token 提交一份到 Muse 保险库（桥外用途如定时发帖仍走 Muse 侧 CLI）。
+1. 所有者 在 Discord 后台 Reset Token（旧 token 立即作废，旧桥随之停摆——所以要一口气做完）。
+2. 所有者 SSH 到 VPS 运行 `~/discord-bridge/set-token.sh`，在隐藏提示里粘贴新 token（脚本自动补 `Bot ` 前缀、存 600 文件、并当场调 Discord 验证 bot 身份）。
+3. 所有者 再经 Muse 的安全表单把同一 token 提交一份到 Muse 保险库（桥外用途如定时发帖仍走 Muse 侧 CLI）。
 4. Muse 在 VPS 以试跑模式（不发「收到」）跑一圈：核对圈速、新消息数与现行水位一致。
 5. 试跑通过：给轮询程序套 systemd 常驻；Muse 侧 hook 改为 5 秒查 VPS 队列；停用旧的 30 秒轮询 hook。
 6. 在群里实发一条 @ 做端到端验收：计时应落在 10–20 秒内。
@@ -100,12 +100,12 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（常驻轮询） → 队列文件（inbox.
 - 发送无幂等：worker 在「已发出、未销账」之间崩溃，极小概率重复回复一条。
 - 消息被编辑后不会重新入队；删除、表情回应、语音、私信均不处理。
 - 附件只存链接，不下载。
-- **跟进窗口未定案**：现行只认带 @ 的消息。2026-11-10 曾出现群友三条没带 @ 的跟进被漏、靠人工补答；改进方案（已回复过的 thread 内免 @ 续聊＋主频道 30 分钟跟进窗口）待 Dong 决定，未实施。
-- 新 VPS `muse-free-vm`（35.208.246.215:22122，用户 happyrocket）已连通，本桥接是否迁往该机待 Dong 定；本文件按「评分卡同机」现状描述小口位置，迁移时只改部署参数，不改架构。
+- **跟进窗口未定案**：现行只认带 @ 的消息。2026-11-10 曾出现群友三条没带 @ 的跟进被漏、靠人工补答；改进方案（已回复过的 thread 内免 @ 续聊＋主频道 30 分钟跟进窗口）待 所有者 决定，未实施。
+- 另一台新 VPS 已连通（地址与登录账号不入仓），本桥接是否迁往该机待所有者定；本文件按「评分卡同机」现状描述小口位置，迁移时只改部署参数，不改架构。
 
 ## 9. 历史沿革
 
 - 2026-10-10：桥接建成。Muse 侧 hook 每 30 秒跑 `poll.py` 直接扫 Discord，token 存 Muse 保险库经连接器使用。
-- 2026-11-02：轮询一度改 systemd 常驻，同日按 Dong 指示改回 hook 方式。
+- 2026-11-02：轮询一度改 systemd 常驻，同日按 所有者 指示改回 hook 方式。
 - 2026-11-03：纳入第二个服务器「买房」。
-- 2026-11-13：实测 Muse 侧单圈 31–40 秒、已超过 30 秒间隔；Dong 定案把轮询搬到 VPS、Muse 只等消息与回复，并定先不用 Gateway 长连接。同日 VPS 侧程序与小口建成，待 token 切换。
+- 2026-11-13：实测 Muse 侧单圈 31–40 秒、已超过 30 秒间隔；所有者 定案把轮询搬到 VPS、Muse 只等消息与回复，并定先不用 Gateway 长连接。同日 VPS 侧程序与小口建成，待 token 切换。
