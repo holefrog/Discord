@@ -1,0 +1,14 @@
+[Unit]
+Description=Discord bridge poller (Bot-Muse, VPS-local REST polling)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=<SSH_USER>
+ExecStart=/home/<SSH_USER>/discord-bridge/run-loop.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

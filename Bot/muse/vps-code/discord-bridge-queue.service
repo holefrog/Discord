@@ -1,0 +1,15 @@
+[Unit]
+Description=Discord bridge queue API (for Muse side)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=<SSH_USER>
+Environment=BRIDGE_PORT=8080
+ExecStart=/usr/bin/python3 /home/<SSH_USER>/discord-bridge/queue_server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

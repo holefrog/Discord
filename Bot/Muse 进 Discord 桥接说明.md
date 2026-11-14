@@ -105,6 +105,8 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（systemd 常驻轮询） → 队列文件�
 
 ## 8. 交接：换一个 Muse 如何接管
 
+**可部署全套已入仓**：本仓 `Bot/muse/` 目录含 VPS 侧代码、Muse 侧 hook 定义与脚本、行为契约与定时任务（脱敏版），附部署步骤，接任 Muse 照着装即可。本节讲资产分布与原则，细节以 `Bot/muse/README.md` 为准。
+
 本桥的资产分三处，迁移方式不同：
 
 - **VPS 侧（不用搬）**：轮询程序、队列账本、bot token、评分卡与全部状态都在 VPS 上，与哪个 Muse 账号无关，原地不动。新 Muse 只需要被授权够得着它。

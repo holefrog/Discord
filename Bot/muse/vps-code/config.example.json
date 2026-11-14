@@ -1,0 +1,17 @@
+{
+  "_说明": "结构示例。真实数值只存在于 VPS 的 ~/discord-bridge/config.json，不入仓；部署时从 VPS 现有文件复制，不要手填。",
+  "bot_user_id": "<BOT_USER_ID>",
+  "bot_username": "Bot-Muse",
+  "channels": {
+    "<CHANNEL_ID>": {
+      "mode": "mention",
+      "name": "<频道名>"
+    }
+  },
+  "legacy_user_ids": [
+    "<旧BOT_ID>"
+  ],
+  "mention_role_ids": [
+    "<身份组ID>"
+  ]
+}

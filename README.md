@@ -63,6 +63,7 @@ Discord  ⇄REST⇄  VPS 上的 bot 程序  ⇄REST 小口⇄  Muse
 ## 文档索引
 
 - [技术文档](Bot/Muse%20进%20Discord%20桥接说明.md)——组件、接口规格、配置、切换记录、交接清单、已知限制
+- [Muse 侧部署包](Bot/muse/README.md)——给接任 Muse 的可部署全套（VPS 代码、hook 定义与脚本、行为契约、定时任务，脱敏版），照着装即可接管
 - [建 Bot 操作指南](Bot/discord-app-bot-setup-guide.md)——在 Discord 后台建 App/Bot、拿 token、邀进服务器（所有者 操作用）
 - [项目需求（归档）](Bot/bot-muse-requirements.md)——最初的需求与教训记录，历史沿革以此为准
 - [Privacy Policy](Bot/Doc/Privacy%20Policy.md) / [Terms of Service](Bot/Doc/Terms%20of%20Service.md)——Discord 应用上架用文本
