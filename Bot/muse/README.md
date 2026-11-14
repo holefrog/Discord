@@ -10,10 +10,10 @@
 | `vps-code/discord-bridge-poll.service` | VPS `/etc/systemd/system/`（unit 里的 `<SSH_USER>` 换成实际登录用户） |
 | `vps-code/discord-bridge-queue.service`、`queue_server.py` | 已下线的临时队列服务，存档，不要装 |
 | `vps-code/config.example.json` | 结构示例；真实 `config.json` 在 VPS 上已有，部署时从机器上取，不要照示例手填 |
-| `claude-side/discord-mention-watch.json` | 用你自己的 hook 工具按此定义重建 hook（5 秒间隔、投递 main） |
-| `claude-side/discord-bridge-vps-check.sh` | 上面 hook 的脚本，放你的 `~/hooks/scripts/`；把 `<VPS_IP>` 换成真实地址 |
-| `claude-side/WORKER-PROMPT-VPS.md` | hook 定义里 worker 指令的纯文本版（与 JSON 内的 prompt 同内容，改词时两处同步） |
-| `claude-side/WORKER.md` | 行为契约，桥的安全红线以此为准 |
+| `muse-side/discord-mention-watch.json` | 用你自己的 hook 工具按此定义重建 hook（5 秒间隔、投递 main） |
+| `muse-side/discord-bridge-vps-check.sh` | 上面 hook 的脚本，放你的 `~/hooks/scripts/`；把 `<VPS_IP>` 换成真实地址 |
+| `muse-side/WORKER-PROMPT-VPS.md` | hook 定义里 worker 指令的纯文本版（与 JSON 内的 prompt 同内容，改词时两处同步） |
+| `muse-side/WORKER.md` | 行为契约，桥的安全红线以此为准 |
 | `crons/oq-job-prep-weekly-reminder.md` | 用你自己的 cron 工具按全文重建（频道 id 占位符向 所有者 索取真实值） |
 
 ## 部署步骤（新 Muse 接管时）
