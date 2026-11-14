@@ -1,23 +1,10 @@
----
-id: oq-job-prep-weekly-reminder
-title: 'OQ 求职准备每周提醒（Discord #求职准备）'
-enabled: true
-owner: goal:oq
-mode: task
-schedule:
-  kind: weekly
-  timezone: America/Toronto
-  time: 15:00:00
-  dow: [Fri]
-delivery:
-  - chat_id: 9855dde2-5496-4525-b6f0-76324cf9e70a
-metadata:
-  originating_chat_context_json: '{"chat_id":"9855dde2-5496-4525-b6f0-76324cf9e70a","origin_provider":"main","chat_kind":"direct","event_kind":"message","require_mention":false,"device_id":"229980455507ee77"}'
-  presentation_locale: en-CA
----
 # OQ 求职准备每周提醒
 
 每周五 15:00（America/Toronto）在 所有者 的 Discord 服务器 #求职准备 频道给 OQ 发一条求职准备进度提醒。OQ 提出、所有者 于 2026-11-10 批准（同日 所有者 定：群成员都有权让 Bot-Muse 建定时任务）。
+
+## 通道（2026-11-13 所有者 选定 B 方案：全走新 VPS，不用保险库 CLI）
+- 读写都走新 VPS muse-free-vm 的桥接口（评分卡服务 :3000），请求头带 `X-Bridge-Token: $(cat ~/hooks/secrets/discord-bridge-newvps-hook-token)`（读文件取值，不要打印 token）。
+- **不要再用** `~/workspace/discord-bridge/context.py` / `send.py`：它们走保险库里的旧 bot token，该 token 已于 2026-11-13 作废，必然 401。
 
 ## 时间窗（先判日期，再做事）
 - 今天（多伦多日期）早于 2026-12-25：**不发帖、不汇报**，直接结束本次运行（系列尚未开始）。
@@ -25,8 +12,8 @@ metadata:
 - 晚于 2027-04-30：不发帖；向 所有者 汇报「OQ 求职准备每周提醒系列已结束」，请他删除本 cron（oq-job-prep-weekly-reminder）并关闭 tracked item「OQ 求职准备每周提醒」。
 
 ## 发帖流程
-1. 先读 #求职准备 频道近期消息看 OQ 报过的进度（哪些已完成、哪些在做）：`python3 ~/workspace/discord-bridge/context.py <OQ提醒频道ID> 25` 或用 discord-bridge 的 discord_api 读 channel_messages。她报过的以她为准，没报的按默认排期推进；遇到她说的考试周，本周只发一句「考试周冻结，考完继续」，不推新任务。
-2. 发帖：`python3 ~/workspace/discord-bridge/send.py <OQ提醒频道ID>`，正文走 stdin。开头 @ OQ（<@<OQ_USER_ID>>）。格式按 所有者 的 Discord 约定：**加粗小标题**、段间空行、条目用 `· `，简短，别写成长文。
+1. 先读 #求职准备 频道近期消息看 OQ 报过的进度（哪些已完成、哪些在做）：`curl -s -H "X-Bridge-Token: $(cat ~/hooks/secrets/discord-bridge-newvps-hook-token)" "http://<VPS_IP>:3000/api/bridge/messages?channel_id=<OQ提醒频道ID>&limit=25"`，返回 JSON 的 items（最新在前，含 author、content、timestamp）。她报过的以她为准，没报的按默认排期推进；遇到她说的考试周，本周只发一句「考试周冻结，考完继续」，不推新任务。
+2. 发帖：把正文写进临时文件，再用 python3 读文件组 JSON 发出：`curl -s -X POST -H "X-Bridge-Token: $(cat ~/hooks/secrets/discord-bridge-newvps-hook-token)" -H "Content-Type: application/json" --data @<含 {"channel_id":"<OQ提醒频道ID>","content":正文} 的 JSON 文件> http://<VPS_IP>:3000/api/bridge/reply`，返回 `{"ok":true}` 才算发出。开头 @ OQ（<@<OQ_USER_ID>>）。格式按 所有者 的 Discord 约定：**加粗小标题**、段间空行、条目用 `· `，简短，别写成长文。
 3. 发完向 所有者 一行汇报：第几期、主题是什么。
 
 ## 内容依据（OQ 2026-10-22 的毕业前补经验计划，总预算 35–40 小时，2027 年 4 月底毕业）
@@ -45,4 +32,4 @@ metadata:
 - 4-16、4-23：毕业前检查（简历终版、LinkedIn 更新、投递清单）
 - 4-30：最后一期，收官总结
 
-Discord 发不出去（CLI 报错）时不要重试刷屏，向 所有者 汇报失败原因即可。
+Discord 发不出去（VPS 接口报错）时不要重试刷屏，向 所有者 汇报失败原因即可。

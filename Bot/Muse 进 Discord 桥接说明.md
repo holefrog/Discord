@@ -60,6 +60,7 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（systemd 常驻轮询） → 队列文件�
 | `/api/bridge/pending` | GET | 返回待回复条数（队列减已回复账本） |
 | `/api/bridge/inbox` | GET | 返回全部待回复条目（含上下文） |
 | `/api/bridge/replied` | POST | body `{id, reply_id}`；把该条写入已回复账本销账 |
+| `/api/bridge/messages` | GET | query `channel_id`、`limit`；用 bot token 读某频道近期消息（最新在前）。2026-11-13 晚为定时发帖类任务补加：这类任务改走 VPS 读进度+发帖，不再依赖任何 Muse 侧保存的 bot token |
 | `/api/bridge/reply` | POST | body `{channel_id, content}`；用 bot 身份发进频道，自动按 1900 字符分段，返回消息 id 列表；bot token 不在机器上时返回 503 并注明原因，不假装成功 |
 
 历史注记：切换当晚曾短暂用过一个独立 Python 队列服务占 :3000，评分卡迁入后即下线，小口回归「并入评分卡服务」的形态（与旧机最后形态一致）。
