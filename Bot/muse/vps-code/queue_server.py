@@ -10,14 +10,19 @@ Endpoints:
   POST /api/bridge/replied  -> {"id": ..., "reply_id": ...} marks an item done
   POST /api/bridge/reply    -> {"channel_id": ..., "content": ...} posts to
                                Discord with the bot token from token.txt
+  GET  /api/bridge/messages?channel_id=..&limit=.. -> {"items": [...]} reads
+                               recent messages of a channel with the bot token
 
 Bind/port: BRIDGE_HOST (default 0.0.0.0), BRIDGE_PORT (default 8080).
+Production (2026-11-13 split): BRIDGE_HOST=127.0.0.1, BRIDGE_PORT=3001,
+behind the nginx reverse proxy on :3000 (path /api/bridge/).
 State dir: BRIDGE_STATE_DIR (default ~/discord-bridge).
 """
 import hmac
 import json
 import os
 import time
+import urllib.parse
 import urllib.request
 import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -89,6 +94,32 @@ def discord_post(channel_id, content):
     return ids, None
 
 
+def discord_get_messages(channel_id, limit):
+    token = read_file("token.txt").strip()
+    if not token:
+        return None, "bot token not on VPS yet"
+    req = urllib.request.Request(
+        "%s/channels/%s/messages?limit=%d" % (DISCORD, channel_id, limit),
+        headers={"Authorization": token, "User-Agent": UA},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            msgs = json.loads(resp.read().decode() or "[]")
+    except urllib.error.HTTPError as e:
+        return None, "discord read failed: HTTP %s" % e.code
+    items = [
+        {
+            "id": m.get("id"),
+            "author": (m.get("author") or {}).get("username", ""),
+            "author_id": (m.get("author") or {}).get("id", ""),
+            "content": m.get("content") or "",
+            "timestamp": m.get("timestamp") or "",
+        }
+        for m in (msgs if isinstance(msgs, list) else [])
+    ]
+    return items, None
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):  # keep journal clean
         pass
@@ -113,29 +144,47 @@ class Handler(BaseHTTPRequestHandler):
             return None
 
     def do_GET(self):
-        if not self.path.startswith("/api/bridge/"):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        if not path.startswith("/api/bridge/"):
             return self._json(404, {"error": "not found"})
         if not self._authed():
             return self._json(401, {"error": "bad bridge token"})
-        if self.path == "/api/bridge/pending":
+        if path == "/api/bridge/pending":
             replied = read_replied()
             pending = [i for i in read_inbox() if i["id"] not in replied]
             return self._json(200, {"pending": len(pending)})
-        if self.path == "/api/bridge/inbox":
+        if path == "/api/bridge/inbox":
             replied = read_replied()
             items = [i for i in read_inbox() if i["id"] not in replied]
+            return self._json(200, {"items": items})
+        if path == "/api/bridge/messages":
+            qs = urllib.parse.parse_qs(parsed.query)
+            channel_id = (qs.get("channel_id") or [""])[0]
+            try:
+                limit = int((qs.get("limit") or ["25"])[0])
+            except ValueError:
+                limit = 25
+            if not channel_id:
+                return self._json(400, {"error": "channel_id required"})
+            limit = max(1, min(100, limit))
+            items, err = discord_get_messages(channel_id, limit)
+            if err:
+                code = 503 if "token" in err else 502
+                return self._json(code, {"error": err})
             return self._json(200, {"items": items})
         return self._json(404, {"error": "unknown bridge endpoint"})
 
     def do_POST(self):
-        if not self.path.startswith("/api/bridge/"):
+        path = urllib.parse.urlparse(self.path).path
+        if not path.startswith("/api/bridge/"):
             return self._json(404, {"error": "not found"})
         if not self._authed():
             return self._json(401, {"error": "bad bridge token"})
         body = self._body()
         if body is None:
             return self._json(400, {"error": "invalid JSON body"})
-        if self.path == "/api/bridge/replied":
+        if path == "/api/bridge/replied":
             if not body.get("id"):
                 return self._json(400, {"error": "id required"})
             replied = read_replied()
@@ -143,7 +192,7 @@ class Handler(BaseHTTPRequestHandler):
             with open(os.path.join(STATE_DIR, "replied.json"), "w", encoding="utf-8") as f:
                 json.dump(replied, f, indent=2)
             return self._json(200, {"ok": True})
-        if self.path == "/api/bridge/reply":
+        if path == "/api/bridge/reply":
             channel_id = str(body.get("channel_id") or "")
             content = str(body.get("content") or "")
             if not channel_id or not content:

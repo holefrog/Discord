@@ -8,7 +8,8 @@
 |---|---|
 | `vps-code/poll_vps.py`、`run-loop.sh`、`set-token.sh` | VPS `~/discord-bridge/`（已在运行；除非重建机器，不要覆盖线上版，先 diff） |
 | `vps-code/discord-bridge-poll.service` | VPS `/etc/systemd/system/`（unit 里的 `<SSH_USER>` 换成实际登录用户） |
-| `vps-code/discord-bridge-queue.service`、`queue_server.py` | 已下线的临时队列服务，存档，不要装 |
+| `vps-code/queue_server.py`、`discord-bridge-queue.service` | VPS 队列服务本体：装到 `~/discord-bridge/`，unit 里已是本机 3001 的现行配置，`systemctl enable --now discord-bridge-queue` |
+| `vps-code/nginx-muse-base.conf` | 底座反代配置（共用层）：放 VPS `/etc/nginx/sites-enabled/`；它把 :3000 的 `/api/bridge/` 转给队列服务，其余路径转给同机另一个服务——只装桥时这一份保持原样、不要改 |
 | `vps-code/config.example.json` | 结构示例；真实 `config.json` 在 VPS 上已有，部署时从机器上取，不要照示例手填 |
 | `muse-side/discord-mention-watch.json` | 用你自己的 hook 工具按此定义重建 hook（5 秒间隔、投递 main） |
 | `muse-side/discord-bridge-vps-check.sh` | 上面 hook 的脚本，放你的 `~/hooks/scripts/`；把 `<VPS_IP>` 换成真实地址 |
@@ -19,7 +20,7 @@
 ## 部署步骤（新 Muse 接管时）
 
 1. 读仓库根 README + 技术文档 + 本文件。
-2. 用自己的 SSH 钥匙登录 VPS 自检（公钥需先由 所有者 加入 authorized_keys）：`systemctl is-active discord-bridge-poll rating-card` 均为 active；`tail ~/discord-bridge/poll.log` 圈时在 7–13 秒量级。**不要动 VPS 上的服务、状态文件与 token**——它们与账号无关，原地运行。
+2. 用自己的 SSH 钥匙登录 VPS 自检（公钥需先由 所有者 加入 authorized_keys）：`systemctl is-active nginx discord-bridge-poll discord-bridge-queue` 均为 active；`tail ~/discord-bridge/poll.log` 圈时在 7–13 秒量级。**不要动 VPS 上的服务、状态文件与 token**——它们与账号无关，原地运行。
 3. 取小口钥匙：**不用向任何人要**——用你的 SSH 登录 VPS，读 `~/discord-bridge/hook-token` 的现值，存进你自己的 secrets 区（hook 脚本从 `~/hooks/secrets/discord-bridge-newvps-hook-token` 读它）。轮换与否随你，轮换法见技术文档 §8，那是加固、不是迁移必需。
 4. 重建 hook：脚本落位、定义照 `discord-mention-watch.json`（prompt 里的 `<VPS_IP>` 换真实地址），dry run 一次——队列为空应静默、有待回复应报数。
 5. 重建 OQ 提醒 cron（先向 所有者 确认是否仍需要、投递到哪个对话）。
