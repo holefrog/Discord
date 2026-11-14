@@ -20,11 +20,11 @@
 
 1. 读仓库根 README + 技术文档 + 本文件。
 2. 用自己的 SSH 钥匙登录 VPS 自检（公钥需先由 所有者 加入 authorized_keys）：`systemctl is-active discord-bridge-poll rating-card` 均为 active；`tail ~/discord-bridge/poll.log` 圈时在 7–13 秒量级。**不要动 VPS 上的服务、状态文件与 token**——它们与账号无关，原地运行。
-3. 取小口钥匙：向 所有者 拿 `hook-token` 的现值，存进你自己的 secrets 区（hook 脚本从 `~/hooks/secrets/discord-bridge-newvps-hook-token` 读它）；或按技术文档 §8 在 VPS 上轮换。
+3. 取小口钥匙：**不用向任何人要**——用你的 SSH 登录 VPS，读 `~/discord-bridge/hook-token` 的现值，存进你自己的 secrets 区（hook 脚本从 `~/hooks/secrets/discord-bridge-newvps-hook-token` 读它）。轮换与否随你，轮换法见技术文档 §8，那是加固、不是迁移必需。
 4. 重建 hook：脚本落位、定义照 `discord-mention-watch.json`（prompt 里的 `<VPS_IP>` 换真实地址），dry run 一次——队列为空应静默、有待回复应报数。
 5. 重建 OQ 提醒 cron（先向 所有者 确认是否仍需要、投递到哪个对话）。
 6. 在群里实发一条 @ 做端到端验收：基准——「收到」5–13 秒、正式回复 44–65 秒（大头是 agent 思考，属正常）。
-7. 交班切换须 所有者 明确下令：前任 Muse 停用其 hook/cron、并从 VPS authorized_keys 删除前任的钥匙。切换前两边不得同时回复同一条，避免重复。
+7. 交班切换须 所有者 明确下令，顺序是：前任先停用其 hook/cron、回读验证、查队列积压，并经 所有者 转交一份「已停清单」给你作凭据；你收到清单后再启用自己这侧，两边不得同时回复同一条。交接可以分项目分步：前任的 SSH 钥匙若因未交接的项目（如看房一套）暂留 VPS，属正常，不要以钥匙在否判断前任停没停，以「已停清单」为准。
 
 ## 脱敏对照（部署时向 所有者 / 机器侧取真实值）
 
