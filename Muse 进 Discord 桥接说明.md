@@ -15,7 +15,7 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（systemd 常驻轮询） → 队列文件�
 - Discord 没有给普通机器人用的官方托管接入，桥接为自建。
 - 机器人：Discord 应用 `App-Bot-Muse` 下的 bot 账号 **Bot-Muse**（user id 只存部署侧 config.json，不入仓）。
 - 全程 REST，不用 Gateway 长连接（2026-11-13 定案；理由见 README「关键设计决定」）。
-- 部署机：一台独立 VPS（地址、登录账号只存部署侧配置，不入仓）。**底座先行**：nginx 独占对外端口 :3000、按路径反代，是各服务共用的唯一一层；底座由 Ansible 在开荒时统一部署（骨架站点＋片段目录 `/etc/nginx/muse-routes/`＋校验重载命令 `muse-nginx-reload`），不属于任何单个项目。桥的每个组件各听各的本地端口、各自独立进程，互不寄生；桥对外只靠自带的一份路由片段（见 §3）。此形态为 2026-11-13 深夜拆分后的结果，过程见 §10。
+- 部署机：一台独立 VPS（地址、登录账号只存部署侧配置，不入仓）。**底座先行**：nginx 独占对外端口 :3000、按路径反代，是各服务共用的唯一一层；底座由 Ansible 在开荒时统一部署（骨架站点＋片段目录 `/etc/nginx/routes.d/`＋校验重载命令 `nginx-reload`），不属于任何单个项目。桥的每个组件各听各的本地端口、各自独立进程，互不寄生；桥对外只靠自带的一份路由片段（见 §3）。此形态为 2026-11-13 深夜拆分后的结果，过程见 §10。
 
 ## 2. VPS 侧：轮询程序 `poll_vps.py`
 
@@ -53,7 +53,7 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（systemd 常驻轮询） → 队列文件�
 
 ## 3. 队列小口（独立队列服务，经 nginx 反代接入）
 
-独立的 Python 标准库服务 `queue_server.py`（systemd 单元 `discord-bridge-queue`），只听本机 `127.0.0.1:3001`；对外由底座 nginx 在 :3000 按路径前缀 `/api/bridge/` 反代进来——这条 path 来自桥自带的路由片段 `nginx-route.discord-bridge.conf`（在部署包 `muse/vps-code/` 里，部署时投放到片段目录并执行底座的 `muse-nginx-reload` 生效；删片段即下线本 path，不影响底座与其他项目）。每个请求须带请求头 `X-Bridge-Token`（与 VPS 上 `hook-token` 文件同值，恒定时间比对；无钥匙 401）。小口直接读写 §2.2 的队列文件与 `token.txt`，与轮询程序同机同账本。
+独立的 Python 标准库服务 `queue_server.py`（systemd 单元 `discord-bridge-queue`），只听本机 `127.0.0.1:3001`；对外由底座 nginx 在 :3000 按路径前缀 `/api/bridge/` 反代进来——这条 path 来自桥自带的路由片段 `nginx-route.discord-bridge.conf`（在部署包 `muse/vps-code/` 里，部署时投放到片段目录并执行底座的 `nginx-reload` 生效；删片段即下线本 path，不影响底座与其他项目）。每个请求须带请求头 `X-Bridge-Token`（与 VPS 上 `hook-token` 文件同值，恒定时间比对；无钥匙 401）。小口直接读写 §2.2 的队列文件与 `token.txt`，与轮询程序同机同账本。
 
 | 接口 | 方法 | 作用 |
 |---|---|---|

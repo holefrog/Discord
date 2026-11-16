@@ -9,7 +9,7 @@
 | `vps-code/poll_vps.py`、`run-loop.sh`、`set-token.sh` | VPS `~/discord-bridge/`（已在运行；除非重建机器，不要覆盖线上版，先 diff） |
 | `vps-code/discord-bridge-poll.service` | VPS `/etc/systemd/system/`（unit 里的 `<SSH_USER>` 换成实际登录用户） |
 | `vps-code/queue_server.py`、`discord-bridge-queue.service` | VPS 队列服务本体：装到 `~/discord-bridge/`，unit 里已是本机 3001 的现行配置，`systemctl enable --now discord-bridge-queue` |
-| `vps-code/nginx-route.discord-bridge.conf` | 本项目自带的路由片段：部署时投放到 VPS `/etc/nginx/muse-routes/discord-bridge.conf` 并执行 `muse-nginx-reload`。底座本体（骨架站点、片段目录、重载命令）由 Ansible 开荒时统一部署，**不在本项目内**，不要在这里找、也不要改它 |
+| `vps-code/nginx-route.discord-bridge.conf` | 本项目自带的路由片段：部署时投放到 VPS `/etc/nginx/routes.d/discord-bridge.conf` 并执行 `nginx-reload`。底座本体（骨架站点、片段目录、重载命令）由 Ansible 开荒时统一部署，**不在本项目内**，不要在这里找、也不要改它 |
 | `vps-code/config.example.json` | 结构示例；真实 `config.json` 在 VPS 上已有，部署时从机器上取，不要照示例手填 |
 | `muse-side/discord-mention-watch.json` | 用你自己的 hook 工具按此定义重建 hook（5 秒间隔、投递 main） |
 | `muse-side/discord-bridge-vps-check.sh` | 上面 hook 的脚本，放你的 `~/hooks/scripts/`；把 `<VPS_IP>` 换成真实地址 |
