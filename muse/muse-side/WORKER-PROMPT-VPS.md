@@ -10,14 +10,14 @@
 只在以下情况向所有者报告：接口报错（401/403/5xx）、连续失败、或触发了需要他本人确认的安全红线。正常处理完保持静默，在 execute summary 里如实记录做了什么。
 
 ## reason = bridge-down（桥/VPS 失联，首次告警）
-1. 在主聊天发一条告警：muse-free-vm 的桥接从什么时候（payload 的 down_since，换算成 America/Dawson_Creek 当地时间）开始连不上；影响是 Discord 里 @ bot 没人回、消息会积压；下一步是如果持续 10 分钟还不通、且所有者没有说"别重启"，就会自动重启 VPS。
-2. 再发一封邮件到 <OWNER_EMAIL>（Gmail +send，主题"[Bot-Muse] muse-free-vm 桥接断线告警"，正文写同样的事实和下一步）。如果 Gmail 没接通，跳过邮件，在聊天告警里说明"邮件发不出去，Gmail 还没接通"，并在 execute summary 里记下来。
+1. 在主聊天发一条告警：<VPS_NAME> 的桥接从什么时候（payload 的 down_since，换算成 America/Dawson_Creek 当地时间）开始连不上；影响是 Discord 里 @ bot 没人回、消息会积压；下一步是如果持续 10 分钟还不通、且所有者没有说"别重启"，就会自动重启 VPS。
+2. 再发一封邮件到 <OWNER_EMAIL>（Gmail +send，主题"[Bot-Muse] <VPS_NAME> 桥接断线告警"，正文写同样的事实和下一步）。如果 Gmail 没接通，跳过邮件，在聊天告警里说明"邮件发不出去，Gmail 还没接通"，并在 execute summary 里记下来。
 3. 不要重启任何东西，这次只报警。
 
 ## reason = restart-due（已断线 10 分钟，该决定是否重启）
-1. 先查所有者有没有叫停，有两个地方都要看：(a) 主聊天和 side chat <SIDE_CHAT_ID> 里、告警之后的消息，看有没有"别重启"、"等我"、"不要重启"、"先别动"；(b) Gmail 里回复告警邮件的回信（搜主题 "[Bot-Muse] muse-free-vm 桥接断线告警" 的 thread，看告警之后有没有所有者回的"别重启"、"不要重启"、"等我"）。任一处有 → 在主聊天回一句"收到，先不重启，等你指示"，停下来；并告诉所有者，想重启时在聊天里说一声"可以重启了"。
-2. 没人叫停 → 先试 SSH：~/workspace/muse-free-vm/ssh-vm.sh 连上去看服务状态。如果 SSH 还通：sudo systemctl restart nginx discord-bridge-queue discord-bridge-poll，等 10 秒，再 curl :3000/login 和 inbox 验证；通了就是修好了，汇报恢复，不用重启整机。
-3. 如果 SSH 也死了（连不上、卡住断线），或重启服务后桥还是不通 → 用浏览器任务去 GCP 控制台 Reset 这台机：项目 Project-Muse（project-muse-514023），实例 muse-free-vm，us-central1-a。只做 Reset，不改其他任何设置。
+1. 先查所有者有没有叫停，有两个地方都要看：(a) 主聊天和 side chat <SIDE_CHAT_ID> 里、告警之后的消息，看有没有"别重启"、"等我"、"不要重启"、"先别动"；(b) Gmail 里回复告警邮件的回信（搜主题 "[Bot-Muse] <VPS_NAME> 桥接断线告警" 的 thread，看告警之后有没有所有者回的"别重启"、"不要重启"、"等我"）。任一处有 → 在主聊天回一句"收到，先不重启，等你指示"，停下来；并告诉所有者，想重启时在聊天里说一声"可以重启了"。
+2. 没人叫停 → 先试 SSH：~/workspace/<VPS_NAME>/ssh-vm.sh 连上去看服务状态。如果 SSH 还通：sudo systemctl restart nginx discord-bridge-queue discord-bridge-poll，等 10 秒，再 curl :3000/login 和 inbox 验证；通了就是修好了，汇报恢复，不用重启整机。
+3. 如果 SSH 也死了（连不上、卡住断线），或重启服务后桥还是不通 → 用浏览器任务去 GCP 控制台 Reset 这台机：项目 <GCP_PROJECT_ID>，实例 <VPS_NAME>，<GCP_ZONE>。只做 Reset，不改其他任何设置。
 4. 重启后验证：SSH 能连、systemctl 里 nginx、discord-bridge-queue、discord-bridge-poll、rating-card 都是 active、curl :3000/ 返回 302、/login 返回 200。再查日志找原因：journalctl 看上一个 boot 在断线时间点附近的最后记录、nginx error.log 和 access.log 的尾巴；有发现就写进汇报，没发现就直说"日志里没有原因，机器是悄无声息卡死的"（2026-11-16 那次就是这样）。
 5. 只要做过整机 Reset，就更新健康状态文件 ~/hooks/state/discord-bridge-health.json：把 restarted 改成 true、restarted_at 改成这次重启完成的 epoch 秒数（用 python3 读写 JSON，不要手写）。只重启服务修好的不用改。
 6. 在主聊天汇报做了什么、现在通没通、日志有没有找到原因；Gmail 接通的话也发一封同样内容的邮件。

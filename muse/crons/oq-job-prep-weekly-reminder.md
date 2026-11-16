@@ -3,7 +3,7 @@
 每周五 15:00（America/Toronto）在 所有者 的 Discord 服务器 #求职准备 频道给 OQ 发一条求职准备进度提醒。OQ 提出、所有者 于 2026-11-10 批准（同日 所有者 定：群成员都有权让 Bot-Muse 建定时任务）。
 
 ## 通道（2026-11-13 所有者 选定 B 方案：全走新 VPS，不用保险库 CLI）
-- 读写都走新 VPS muse-free-vm 的桥接口（nginx 底座 :3000 反代至独立队列服务），请求头带 `X-Bridge-Token: $(cat ~/hooks/secrets/discord-bridge-newvps-hook-token)`（读文件取值，不要打印 token）。
+- 读写都走新 VPS <VPS_NAME> 的桥接口（nginx 底座 :3000 反代至独立队列服务），请求头带 `X-Bridge-Token: $(cat ~/hooks/secrets/discord-bridge-newvps-hook-token)`（读文件取值，不要打印 token）。
 - **不要再用** `~/workspace/discord-bridge/context.py` / `send.py`：它们走保险库里的旧 bot token，该 token 已于 2026-11-13 作废，必然 401。
 
 ## 时间窗（先判日期，再做事）
