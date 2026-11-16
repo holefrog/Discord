@@ -10,6 +10,10 @@ Endpoints:
   POST /api/bridge/replied  -> {"id": ..., "reply_id": ...} marks an item done
   POST /api/bridge/reply    -> {"channel_id": ..., "content": ...} posts to
                                Discord with the bot token from token.txt
+  POST /api/bridge/reply-image -> {"channel_id": ..., "content": ..., 
+                               "filename": ..., "image_base64": ...} posts one
+                               image (png/jpg/gif/webp, <=8 MB) to Discord via
+                               multipart upload, with optional caption text
   GET  /api/bridge/messages?channel_id=..&limit=.. -> {"items": [...]} reads
                                recent messages of a channel with the bot token
 
@@ -18,11 +22,13 @@ Production (2026-11-13 split): BRIDGE_HOST=127.0.0.1, BRIDGE_PORT=3001,
 behind the nginx reverse proxy on :3000 (path /api/bridge/).
 State dir: BRIDGE_STATE_DIR (default ~/discord-bridge).
 """
+import base64
 import hmac
 import json
 import os
 import time
 import urllib.parse
+import uuid
 import urllib.request
 import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -94,6 +100,67 @@ def discord_post(channel_id, content):
     return ids, None
 
 
+_IMAGE_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+}
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+
+def discord_post_image(channel_id, content, image_bytes, filename):
+    """Post one image file to a Discord channel (multipart upload)."""
+    token = read_file("token.txt").strip()
+    if not token:
+        return None, "bot token not on VPS yet"
+    if not image_bytes or len(image_bytes) > MAX_IMAGE_BYTES:
+        return None, "image missing or over 8 MB"
+    ext = os.path.splitext(filename or "")[1].lower()
+    mime = _IMAGE_TYPES.get(ext)
+    if not mime:
+        return None, "unsupported image type (png/jpg/gif/webp only)"
+    boundary = uuid.uuid4().hex
+    payload = json.dumps(
+        {"content": (content or "")[:1900]}, ensure_ascii=False
+    ).encode()
+    body = b"".join(
+        [
+            b"--" + boundary.encode() + b"\r\n",
+            b'Content-Disposition: form-data; name="payload_json"\r\n',
+            b"Content-Type: application/json\r\n\r\n",
+            payload + b"\r\n",
+            b"--" + boundary.encode() + b"\r\n",
+            (
+                'Content-Disposition: form-data; name="files[0]"; '
+                'filename="%s"\r\n' % os.path.basename(filename)
+            ).encode(),
+            ("Content-Type: %s\r\n\r\n" % mime).encode(),
+            image_bytes + b"\r\n",
+            b"--" + boundary.encode() + b"--\r\n",
+        ]
+    )
+    req = urllib.request.Request(
+        "%s/channels/%s/messages" % (DISCORD, channel_id),
+        data=body,
+        method="POST",
+        headers={
+            "Authorization": token,
+            "User-Agent": UA,
+            "Content-Type": "multipart/form-data; boundary=%s" % boundary,
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            m = json.loads(resp.read().decode() or "{}")
+            if m.get("id"):
+                return [m["id"]], None
+            return None, "discord send failed: no message id"
+    except urllib.error.HTTPError as e:
+        return None, "discord send failed: HTTP %s" % e.code
+
+
 def discord_get_messages(channel_id, limit):
     token = read_file("token.txt").strip()
     if not token:
@@ -114,6 +181,14 @@ def discord_get_messages(channel_id, limit):
             "author_id": (m.get("author") or {}).get("id", ""),
             "content": m.get("content") or "",
             "timestamp": m.get("timestamp") or "",
+            "attachments": [
+                {
+                    "filename": a.get("filename", ""),
+                    "size": a.get("size", 0),
+                    "content_type": a.get("content_type", ""),
+                }
+                for a in (m.get("attachments") or [])
+            ],
         }
         for m in (msgs if isinstance(msgs, list) else [])
     ]
@@ -198,6 +273,26 @@ class Handler(BaseHTTPRequestHandler):
             if not channel_id or not content:
                 return self._json(400, {"error": "channel_id and content required"})
             ids, err = discord_post(channel_id, content)
+            if err:
+                code = 503 if "token" in err else 502
+                return self._json(code, {"error": err})
+            return self._json(200, {"ok": True, "ids": ids})
+        if path == "/api/bridge/reply-image":
+            channel_id = str(body.get("channel_id") or "")
+            content = str(body.get("content") or "")
+            filename = os.path.basename(str(body.get("filename") or "image.png"))
+            b64 = str(body.get("image_base64") or "")
+            if not channel_id or not b64:
+                return self._json(
+                    400, {"error": "channel_id and image_base64 required"}
+                )
+            try:
+                image_bytes = base64.b64decode(b64, validate=True)
+            except Exception:
+                return self._json(400, {"error": "invalid base64 image"})
+            ids, err = discord_post_image(
+                channel_id, content, image_bytes, filename
+            )
             if err:
                 code = 503 if "token" in err else 502
                 return self._json(code, {"error": err})

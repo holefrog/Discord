@@ -62,6 +62,7 @@ Discord ⇄REST⇄ [VPS] poll_vps.py（systemd 常驻轮询） → 队列文件�
 | `/api/bridge/replied` | POST | body `{id, reply_id}`；把该条写入已回复账本销账 |
 | `/api/bridge/messages` | GET | query `channel_id`、`limit`；用 bot token 读某频道近期消息（最新在前）。2026-11-13 晚为定时发帖类任务补加：这类任务改走 VPS 读进度+发帖，不再依赖任何 Muse 侧保存的 bot token |
 | `/api/bridge/reply` | POST | body `{channel_id, content}`；用 bot 身份发进频道，自动按 1900 字符分段，返回消息 id 列表；bot token 不在机器上时返回 503 并注明原因，不假装成功 |
+| `/api/bridge/reply-image` | POST | body `{channel_id, content?, filename, image_base64}`；用 bot 身份发一张图（png/jpg/gif/webp，≤8 MB）进频道，可带一段不超过 1900 字符的文字说明，返回消息 id 列表（2026-11-16 加：此前桥接只发文字，wellfrog 要图片对比表时才发现发不了图） |
 
 历史注记：小口的寄生形态有过两轮反复——切换当晚先是独立队列服务占 :3000，同机另一 Web 服务迁入后一度并入那个服务进程；2026-11-13 深夜按 所有者 定案再拆开，现行形态即本节所述：底座（nginx＋:3000＋路径分发）独立先行，各服务挂在后面各自运行；并入形态的旧代码备份留在 VPS 上（`server.js.bak-pre-split`），不要再启用。
 
